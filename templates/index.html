@@ -3,7 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <title>Prateek's Voice Assistant</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
         <style>
             body {
                 font-family: "Segoe UI", sans-serif;
@@ -124,8 +127,12 @@
                 margin: 0 auto;
             }
             @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
             }
             .conversation-card {
                 background: white;
@@ -140,15 +147,23 @@
     <body>
         <div class="container">
             <h2>Ask Me Anything - I'm Prateek Dahiya</h2>
-            
+
             <div class="conversation-card">
-                <p><strong>You asked:</strong> <span id="userText">Ask me a question...</span></p>
+                <p>
+                    <strong>You asked:</strong>
+                    <span id="userText">Ask me a question...</span>
+                </p>
                 <div id="loader" class="loader"></div>
-                <p><strong>My Response:</strong> <span id="jarvisReply">I'm ready to answer your questions.</span></p>
+                <p>
+                    <strong>My Response:</strong>
+                    <span id="jarvisReply"
+                        >I'm ready to answer your questions.</span
+                    >
+                </p>
             </div>
 
             <p id="status">Ready to listen</p>
-            
+
             <button id="micButton" class="mic-button">
                 <i class="fas fa-microphone"></i>
             </button>
@@ -158,7 +173,9 @@
                 <button id="previousButton" disabled>
                     <i class="fas fa-chevron-left"></i> Previous
                 </button>
-                <div class="position-indicator" id="positionIndicator">Question 0 of 0</div>
+                <div class="position-indicator" id="positionIndicator">
+                    Question 0 of 0
+                </div>
                 <button id="nextButton" disabled>
                     Next <i class="fas fa-chevron-right"></i>
                 </button>
@@ -171,9 +188,9 @@
             const socket = io({
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
-                timeout: 20000
+                timeout: 20000,
             });
-            
+
             let currentIndex = -1;
             let totalQuestions = 0;
             let isListening = false;
@@ -181,11 +198,13 @@
             let statusEl = document.getElementById("status");
             let previousButton = document.getElementById("previousButton");
             let nextButton = document.getElementById("nextButton");
-            let positionIndicator = document.getElementById("positionIndicator");
+            let positionIndicator =
+                document.getElementById("positionIndicator");
             let loader = document.getElementById("loader");
 
             // Set up speech recognition
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const SpeechRecognition =
+                window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.lang = "en-US";
             recognition.interimResults = false;
@@ -229,7 +248,7 @@
                 statusEl.innerText = "Processing...";
                 micButton.classList.remove("listening");
                 loader.style.display = "block";
-                
+
                 // Send speech to server
                 socket.emit("speech_input", { text });
             };
@@ -251,7 +270,10 @@
                             recognition.start();
                             micButton.classList.add("listening");
                         } catch (error) {
-                            console.error("Could not restart recognition:", error);
+                            console.error(
+                                "Could not restart recognition:",
+                                error
+                            );
                             isListening = false;
                             statusEl.innerText = "Recognition stopped";
                         }
@@ -265,13 +287,13 @@
                 statusEl.innerText = "Ready to listen";
                 micButton.classList.remove("listening");
                 loader.style.display = "none";
-                
+
                 // Speak the response
-                const utterance = new SpeechSynthesisUtterance(data.reply);
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
-                window.speechSynthesis.speak(utterance);
-                
+                // const utterance = new SpeechSynthesisUtterance(data.reply);
+                // utterance.rate = 1.0;
+                // utterance.pitch = 1.0;
+                // window.speechSynthesis.speak(utterance);
+
                 // Update conversation index
                 updatePositionIndicator(data.totalQuestions, data.currentIndex);
             });
@@ -302,31 +324,37 @@
             function updatePositionIndicator(total, current) {
                 totalQuestions = total;
                 currentIndex = current;
-                
+
                 if (total === 0) {
                     positionIndicator.innerText = "No questions yet";
                     previousButton.disabled = true;
                     nextButton.disabled = true;
                     return;
                 }
-                
-                positionIndicator.innerText = `Question ${current + 1} of ${total}`;
-                
+
+                positionIndicator.innerText = `Question ${
+                    current + 1
+                } of ${total}`;
+
                 // Update button states
                 previousButton.disabled = current <= 0;
                 nextButton.disabled = current >= total - 1;
-                
+
                 // Add indicator for first/last question
                 if (current === 0) {
-                    previousButton.innerHTML = '<i class="fas fa-chevron-left"></i> First';
+                    previousButton.innerHTML =
+                        '<i class="fas fa-chevron-left"></i> First';
                 } else {
-                    previousButton.innerHTML = '<i class="fas fa-chevron-left"></i> Previous';
+                    previousButton.innerHTML =
+                        '<i class="fas fa-chevron-left"></i> Previous';
                 }
-                
+
                 if (current === total - 1) {
-                    nextButton.innerHTML = 'Latest <i class="fas fa-chevron-right"></i>';
+                    nextButton.innerHTML =
+                        'Latest <i class="fas fa-chevron-right"></i>';
                 } else {
-                    nextButton.innerHTML = 'Next <i class="fas fa-chevron-right"></i>';
+                    nextButton.innerHTML =
+                        'Next <i class="fas fa-chevron-right"></i>';
                 }
             }
 
@@ -358,8 +386,8 @@
             // Initialize on page load
             window.onload = () => {
                 socket.emit("get_conversation_count");
-                socket.emit("get_conversation", { index: -1 });  // Get the most recent conversation
-                
+                socket.emit("get_conversation", { index: -1 }); // Get the most recent conversation
+
                 // Start listening after a short delay
                 setTimeout(() => {
                     startListening();
