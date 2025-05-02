@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Prateek's Voice Assistant</title>
+        <style>
+            body {
+                font-family: "Segoe UI", sans-serif;
+                background: linear-gradient(135deg, #fce4ec, #f3e5f5);
+                color: #4a148c;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                padding-top: 40px;
+            }
+            h2 {
+                background: linear-gradient(to right, #9c27b0, #e91e63);
+                color: white;
+                padding: 12px 25px;
+                border-radius: 12px;
+                margin-bottom: 30px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            .container {
+                max-width: 700px;
+                background: rgba(255, 255, 255, 0.85);
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                text-align: center;
+            }
+            #status,
+            p {
+                margin: 20px 0;
+                font-size: 18px;
+            }
+            strong {
+                color: #6a1b9a;
+            }
+            span {
+                font-weight: bold;
+                color: #ad1457;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Ask Me Anything - I'm Prateek Dahiya</h2>
+            <p id="status">Listening...</p>
+            <p><strong>You asked:</strong> <span id="userText"></span></p>
+            <p><strong>My Response:</strong> <span id="jarvisReply"></span></p>
+        </div>
+
+        <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+        <script>
+            const socket = io();
+            const SpeechRecognition =
+                window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            function startListening() {
+                recognition.start();
+                document.getElementById("status").innerText = "Listening...";
+            }
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById("userText").innerText = text;
+                socket.emit("speech_input", { text });
+            };
+
+            recognition.onerror = (e) => {
+                document.getElementById("status").innerText =
+                    "Error: " + e.error;
+            };
+
+            recognition.onend = () => {
+                setTimeout(() => {
+                    recognition.start();
+                }, 500);
+            };
+
+            socket.on("assistant_reply", (data) => {
+                document.getElementById("jarvisReply").innerText = data.reply;
+                const utterance = new SpeechSynthesisUtterance(data.reply);
+                window.speechSynthesis.speak(utterance);
+            });
+
+            window.onload = () => {
+                startListening();
+            };
+        </script>
+    </body>
+</html>
