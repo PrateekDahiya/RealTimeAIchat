@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <title>Prateek's Voice Assistant</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         <style>
             body {
                 font-family: "Segoe UI", sans-serif;
@@ -43,56 +44,326 @@
                 font-weight: bold;
                 color: #ad1457;
             }
+            .navigation-buttons {
+                margin-top: 20px;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                align-items: center;
+            }
+            .navigation-buttons button {
+                background-color: #9c27b0;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .navigation-buttons button:hover:not(:disabled) {
+                background-color: #6a1b9a;
+                transform: translateY(-2px);
+            }
+            .navigation-buttons button:disabled {
+                background-color: #dbb3e6;
+                cursor: not-allowed;
+                opacity: 0.7;
+            }
+            .position-indicator {
+                font-size: 16px;
+                color: #6a1b9a;
+                font-weight: bold;
+                padding: 0 15px;
+            }
+            .mic-button {
+                margin-top: 20px;
+                background-color: #e91e63;
+                color: white;
+                border: none;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+                transition: all 0.3s ease;
+            }
+            .mic-button:hover {
+                background-color: #c2185b;
+                transform: scale(1.05);
+            }
+            .mic-button.listening {
+                animation: pulse 1.5s infinite;
+            }
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0.7);
+                }
+                70% {
+                    box-shadow: 0 0 0 15px rgba(233, 30, 99, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(233, 30, 99, 0);
+                }
+            }
+            .loader {
+                display: none;
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #9c27b0;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .conversation-card {
+                background: white;
+                padding: 15px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                text-align: left;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <h2>Ask Me Anything - I'm Prateek Dahiya</h2>
-            <p id="status">Listening...</p>
-            <p><strong>You asked:</strong> <span id="userText"></span></p>
-            <p><strong>My Response:</strong> <span id="jarvisReply"></span></p>
+            
+            <div class="conversation-card">
+                <p><strong>You asked:</strong> <span id="userText">Ask me a question...</span></p>
+                <div id="loader" class="loader"></div>
+                <p><strong>My Response:</strong> <span id="jarvisReply">I'm ready to answer your questions.</span></p>
+            </div>
+
+            <p id="status">Ready to listen</p>
+            
+            <button id="micButton" class="mic-button">
+                <i class="fas fa-microphone"></i>
+            </button>
+
+            <!-- Navigation Buttons -->
+            <div class="navigation-buttons">
+                <button id="previousButton" disabled>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <div class="position-indicator" id="positionIndicator">Question 0 of 0</div>
+                <button id="nextButton" disabled>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </div>
 
         <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
         <script>
-            const socket = io();
-            const SpeechRecognition =
-                window.SpeechRecognition || window.webkitSpeechRecognition;
+            // Connect to the server with reconnection options
+            const socket = io({
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000
+            });
+            
+            let currentIndex = -1;
+            let totalQuestions = 0;
+            let isListening = false;
+            let micButton = document.getElementById("micButton");
+            let statusEl = document.getElementById("status");
+            let previousButton = document.getElementById("previousButton");
+            let nextButton = document.getElementById("nextButton");
+            let positionIndicator = document.getElementById("positionIndicator");
+            let loader = document.getElementById("loader");
+
+            // Set up speech recognition
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.lang = "en-US";
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
+            recognition.continuous = false;
 
             function startListening() {
-                recognition.start();
-                document.getElementById("status").innerText = "Listening...";
+                try {
+                    recognition.start();
+                    isListening = true;
+                    statusEl.innerText = "Listening...";
+                    micButton.classList.add("listening");
+                } catch (error) {
+                    console.error("Speech recognition error:", error);
+                    statusEl.innerText = "Error starting speech recognition";
+                    isListening = false;
+                    micButton.classList.remove("listening");
+                }
             }
+
+            function stopListening() {
+                try {
+                    recognition.stop();
+                    isListening = false;
+                    statusEl.innerText = "Stopped listening";
+                    micButton.classList.remove("listening");
+                } catch (error) {
+                    console.error("Error stopping recognition:", error);
+                }
+            }
+
+            // Recognition event handlers
+            recognition.onstart = () => {
+                statusEl.innerText = "Listening...";
+                micButton.classList.add("listening");
+            };
 
             recognition.onresult = (event) => {
                 const text = event.results[0][0].transcript;
                 document.getElementById("userText").innerText = text;
+                statusEl.innerText = "Processing...";
+                micButton.classList.remove("listening");
+                loader.style.display = "block";
+                
+                // Send speech to server
                 socket.emit("speech_input", { text });
             };
 
             recognition.onerror = (e) => {
-                document.getElementById("status").innerText =
-                    "Error: " + e.error;
+                console.error("Recognition error:", e);
+                statusEl.innerText = "Error: " + e.error;
+                micButton.classList.remove("listening");
+                setTimeout(() => {
+                    if (isListening) startListening();
+                }, 1000);
             };
 
             recognition.onend = () => {
-                setTimeout(() => {
-                    recognition.start();
-                }, 500);
+                micButton.classList.remove("listening");
+                if (isListening) {
+                    setTimeout(() => {
+                        try {
+                            recognition.start();
+                            micButton.classList.add("listening");
+                        } catch (error) {
+                            console.error("Could not restart recognition:", error);
+                            isListening = false;
+                            statusEl.innerText = "Recognition stopped";
+                        }
+                    }, 500);
+                }
             };
 
+            // Socket event handlers
             socket.on("assistant_reply", (data) => {
                 document.getElementById("jarvisReply").innerText = data.reply;
+                statusEl.innerText = "Ready to listen";
+                micButton.classList.remove("listening");
+                loader.style.display = "none";
+                
+                // Speak the response
                 const utterance = new SpeechSynthesisUtterance(data.reply);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
                 window.speechSynthesis.speak(utterance);
+                
+                // Update conversation index
+                updatePositionIndicator(data.totalQuestions, data.currentIndex);
             });
 
+            socket.on("conversation_response", (data) => {
+                document.getElementById("userText").innerText = data.question;
+                document.getElementById("jarvisReply").innerText = data.answer;
+                currentIndex = data.index || currentIndex;
+                updatePositionIndicator(data.totalQuestions, currentIndex);
+            });
+
+            socket.on("connect_error", (error) => {
+                console.error("Connection error:", error);
+                statusEl.innerText = "Connection error. Retrying...";
+            });
+
+            socket.on("connect", () => {
+                statusEl.innerText = "Connected";
+                socket.emit("get_conversation_count");
+            });
+
+            socket.on("conversation_count", (data) => {
+                totalQuestions = data.count;
+                updatePositionIndicator(totalQuestions, currentIndex);
+            });
+
+            // UI update functions
+            function updatePositionIndicator(total, current) {
+                totalQuestions = total;
+                currentIndex = current;
+                
+                if (total === 0) {
+                    positionIndicator.innerText = "No questions yet";
+                    previousButton.disabled = true;
+                    nextButton.disabled = true;
+                    return;
+                }
+                
+                positionIndicator.innerText = `Question ${current + 1} of ${total}`;
+                
+                // Update button states
+                previousButton.disabled = current <= 0;
+                nextButton.disabled = current >= total - 1;
+                
+                // Add indicator for first/last question
+                if (current === 0) {
+                    previousButton.innerHTML = '<i class="fas fa-chevron-left"></i> First';
+                } else {
+                    previousButton.innerHTML = '<i class="fas fa-chevron-left"></i> Previous';
+                }
+                
+                if (current === total - 1) {
+                    nextButton.innerHTML = 'Latest <i class="fas fa-chevron-right"></i>';
+                } else {
+                    nextButton.innerHTML = 'Next <i class="fas fa-chevron-right"></i>';
+                }
+            }
+
+            // Button event handlers
+            micButton.onclick = () => {
+                if (isListening) {
+                    stopListening();
+                } else {
+                    startListening();
+                }
+            };
+
+            previousButton.onclick = () => {
+                loader.style.display = "block";
+                socket.emit("navigate_conversation", {
+                    index: currentIndex,
+                    direction: "previous",
+                });
+            };
+
+            nextButton.onclick = () => {
+                loader.style.display = "block";
+                socket.emit("navigate_conversation", {
+                    index: currentIndex,
+                    direction: "next",
+                });
+            };
+
+            // Initialize on page load
             window.onload = () => {
-                startListening();
+                socket.emit("get_conversation_count");
+                socket.emit("get_conversation", { index: -1 });  // Get the most recent conversation
+                
+                // Start listening after a short delay
+                setTimeout(() => {
+                    startListening();
+                }, 1000);
             };
         </script>
     </body>
