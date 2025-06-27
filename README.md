@@ -32,7 +32,7 @@ A real-time voice-based AI chat application powered by Flask, Socket.IO, and LLa
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/realtime-ai-chat.git
+git clone https://github.com/PrateekDahiya/realtime-ai-chat.git
 cd realtime-ai-chat
 ```
 
