@@ -27,9 +27,31 @@ A real-time voice-based AI chat application powered by Flask, Socket.IO, and LLa
 
 ---
 
-## 📦 Requirements
+## 📦 Installation
 
-Install all dependencies using:
+### 1. Clone the repository
 
 ```bash
+git clone https://github.com/yourusername/realtime-ai-chat.git
+cd realtime-ai-chat
+```
+
+### 2. Install dependencies
+```bash
 pip install -r requirements.txt
+```
+### 3. Set up environment variables
+Create a .env file in the root directory:
+```bash
+TOKEN_KEY=your_groq_api_key_here
+DEBUG=False
+PORT=5000
+```
+
+### Running the App
+Run the app with:
+
+```bash
+python API.py
+```
+Then visit: [http://localhost:5000](http://localhost:5000)
