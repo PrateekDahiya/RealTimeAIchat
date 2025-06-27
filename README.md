@@ -1,6 +1,6 @@
 # Realtime AI Chat App
 
-**Hosted at**: [https://realtimeaichat.onrender.com](https://realtimeaichat.onrender.com)
+**Hosted at**: [https://realtimeaichat-1wxn.onrender.com](https://realtimeaichat-1wxn.onrender.com)
 
 A real-time voice-based AI chat application powered by Flask, Socket.IO, and LLaMA-3 via Groq API. It simulates a conversation with *Prateek Dahiya*, a software developer persona, and includes smart features like duplicate detection, context awareness, and speech interaction.
 
